@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Authenticity Checker</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #151d32;
+      --panel-2: #1d2943;
+      --primary: #4ea1ff;
+      --primary-2: #7ee0ff;
+      --success: #26c281;
+      --danger: #ff5f6d;
+      --text: #edf3ff;
+      --muted: #b9c5dd;
+      --shadow: rgba(18, 24, 39, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, var(--bg), #101a33 40%, #0f1c2e);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(960px, 100%);
+      background: rgba(21, 29, 50, 0.95);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      box-shadow: 0 20px 60px var(--shadow);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--panel), var(--panel-2));
+      padding: 32px 28px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .content {
+      padding: 28px;
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 18px;
+      padding: 22px;
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      margin-bottom: 14px;
+      font-size: 1.2rem;
+    }
+
+    .upload-box {
+      display: grid;
+      gap: 14px;
+    }
+
+    .file-input {
+      display: block;
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed rgba(126,224,255,0.5);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.2s ease;
+      min-height: 48px;
+      touch-action: manipulation;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      color: #04111d;
+    }
+
+    .danger {
+      background: linear-gradient(135deg, #ff7f7f, var(--danger));
+      color: white;
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .recording-status {
+      margin-top: 10px;
+      min-height: 28px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .result {
+      margin-top: 24px;
+      padding: 20px 22px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .result.hidden { display: none; }
+
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      width: fit-content;
+      font-weight: 700;
+      letter-spacing: 0.03rem;
+      margin-bottom: 12px;
+    }
+
+    .real {
+      background: rgba(38, 194, 129, 0.12);
+      color: #98f7c8;
+      border: 1px solid rgba(38, 194, 129, 0.4);
+    }
+
+    .fake {
+      background: rgba(255, 95, 109, 0.12);
+      color: #ffbcc2;
+      border: 1px solid rgba(255, 95, 109, 0.4);
+    }
+
+    .uncertain {
+      background: rgba(255, 180, 84, 0.14);
+      color: #ffd89b;
+      border: 1px solid rgba(255, 180, 84, 0.45);
+    }
+
+    .result h3 {
+      margin: 0 0 10px;
+      font-size: clamp(1.4rem, 2vw, 2rem);
+    }
+
+    .result p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .score-wrap {
+      margin-top: 18px;
+    }
+
+    .score-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .score-bar {
+      width: 100%;
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--success), #d5f66e, #ffb454, var(--danger));
+      transition: width 0.35s ease;
+    }
+
+    .score-value {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .result-meta {
+      margin-top: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+        display: block;
+      }
+
+      .app {
+        margin: 0 auto;
+        border-radius: 16px;
+      }
+
+      .header {
+        padding: 24px 18px 16px;
+      }
+
+      .content {
+        padding: 16px;
+      }
+
+      .panel-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .btn-row {
+        flex-direction: column;
+      }
+
+      .btn-row button {
+        width: 100%;
+      }
+
+      .result {
+        margin-top: 16px;
+        padding: 18px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      h1 {
+        font-size: 1.65rem;
+      }
+
+      .subtitle {
+        font-size: 0.92rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>Voice Authenticity Checker</h1>
+      <p class="subtitle">Upload a voice clip or record your microphone, and the model will estimate whether it is likely real or fake.</p>
+    </div>
+
+    <div class="content">
+      <div class="panel-grid">
+        <section class="panel">
+          <h2>1) Upload Audio</h2>
+          <div class="upload-box">
+            <input id="fileInput" class="file-input" type="file" accept=".wav,.mp3,.m4a,.ogg,.webm,.flac" />
+            <div class="btn-row">
+              <button id="uploadBtn" class="primary" type="button">Analyze Uploaded File</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>2) Record Live Audio</h2>
+          <div class="btn-row">
+            <button id="startRecordBtn" class="primary" type="button">Start Recording</button>
+            <button id="stopRecordBtn" class="danger" type="button" disabled>Stop & Analyze</button>
+          </div>
+          <div id="recordingStatus" class="recording-status">Ready to record</div>
+        </section>
+      </div>
+
+      <div id="resultBox" class="result hidden" aria-live="polite">
+        <div id="resultBadge" class="result-badge">Result</div>
+        <h3 id="resultLabel">Unknown</h3>
+        <p id="resultText">Prediction will appear here.</p>
+
+        <div class="score-wrap">
+          <div class="score-header">
+            <span>Fake confidence</span>
+            <span id="scoreValue" class="score-value">0%</span>
+          </div>
+          <div class="score-bar">
+            <div id="scoreFill" class="score-bar-fill"></div>
+          </div>
+        </div>
+
+        <div id="resultMeta" class="result-meta"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const startRecordBtn = document.getElementById('startRecordBtn');
+    const stopRecordBtn = document.getElementById('stopRecordBtn');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const resultBox = document.getElementById('resultBox');
+    const resultBadge = document.getElementById('resultBadge');
+    const resultLabel = document.getElementById('resultLabel');
+    const resultText = document.getElementById('resultText');
+    const scoreValue = document.getElementById('scoreValue');
+    const scoreFill = document.getElementById('scoreFill');
+    const resultMeta = document.getElementById('resultMeta');
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let stream;
+
+    function setResult(label, prob, message) {
+      resultBox.classList.remove('hidden');
+      const fakePct = Math.max(0, Math.min(100, Number(prob) * 100));
+      const realPct = 100 - fakePct;
+
+      resultBadge.textContent = label.toUpperCase();
+      resultBadge.className = `result-badge ${label === 'Real' ? 'real' : label === 'Fake' ? 'fake' : 'uncertain'}`;
+      resultLabel.textContent = label;
+      resultText.textContent = `${message}`;
+      scoreValue.textContent = `${fakePct.toFixed(1)}%`;
+      scoreFill.style.width = `${fakePct}%`;
+      resultMeta.textContent = label === 'Real'
+        ? `Voice is likely authentic. Confidence in real class: ${realPct.toFixed(1)}%.`
+        : label === 'Fake'
+          ? `Voice is likely synthetic or manipulated. Confidence in fake class: ${fakePct.toFixed(1)}%.`
+          : `The model is not confident enough to decide. Review the audio with another method.`;
+    }
+
+    async function analyzeFile(file) {
+      if (!file) {
+        alert('Please choose an audio file first.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('audio', file, file.name || 'audio.wav');
+
+      try {
+        const res = await fetch('/predict', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Prediction failed');
+        }
+        setResult(data.label, data.fake_probability, data.message);
+      } catch (err) {
+        resultBox.classList.remove('hidden');
+        resultBadge.textContent = 'ERROR';
+        resultBadge.className = 'result-badge fake';
+        resultLabel.textContent = 'Error';
+        resultText.textContent = err.message || 'Something went wrong while analyzing the file.';
+      }
+    }
+
+    uploadBtn.addEventListener('click', () => {
+      const file = fileInput.files[0];
+      analyzeFile(file);
+    });
+
+    async function startRecording() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const wavBlob = await audioBlobToWav(audioBlob);
+          const file = new File([wavBlob], 'recording.wav', { type: 'audio/wav' });
+          analyzeFile(file);
+
+          stream.getTracks().forEach(track => track.stop());
+          startRecordBtn.disabled = false;
+          stopRecordBtn.disabled = true;
+          recordingStatus.textContent = 'Recording complete and analyzed';
+        };
+
+        mediaRecorder.start();
+        startRecordBtn.disabled = true;
+        stopRecordBtn.disabled = false;
+        recordingStatus.textContent = 'Recording... speak now';
+      } catch (err) {
+        recordingStatus.textContent = 'Microphone access denied or unavailable';
+        console.error(err);
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
+
+    startRecordBtn.addEventListener('click', startRecording);
+    stopRecordBtn.addEventListener('click', stopRecording);
+
+    async function audioBlobToWav(blob) {
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      const wav = audioBufferToWavFile(audioBuffer);
+      return new Blob([wav], { type: 'audio/wav' });
+    }
+
+    function audioBufferToWavFile(audioBuffer) {
+      const numberOfChannels = audioBuffer.numberOfChannels;
+      const sampleRate = audioBuffer.sampleRate;
+      const format = 1;
+      const bitDepth = 16;
+      const bytesPerSample = bitDepth / 8;
+      const blockAlign = numberOfChannels * bytesPerSample;
+      const dataLength = audioBuffer.length * blockAlign;
+      const buffer = new ArrayBuffer(44 + dataLength);
+      const view = new DataView(buffer);
+
+      const writeString = (offset, text) => {
+        for (let i = 0; i < text.length; i++) {
+          view.setUint8(offset + i, text.charCodeAt(i));
+        }
+      };
+
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + dataLength, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, format, true);
+      view.setUint16(22, numberOfChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * blockAlign, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, bitDepth, true);
+      writeString(36, 'data');
+      view.setUint32(40, dataLength, true);
+
+      let offset = 44;
+      const channelData = [];
+      for (let ch = 0; ch < numberOfChannels; ch++) {
+        channelData.push(audioBuffer.getChannelData(ch));
+      }
+
+      for (let i = 0; i < audioBuffer.length; i++) {
+        for (let ch = 0; ch < numberOfChannels; ch++) {
+          let sample = channelData[ch][i];
+          sample = Math.max(-1, Math.min(1, sample));
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+          offset += 2;
+        }
+      }
+
+      return buffer;
+    }
+  </script>
+</body>
+</html>

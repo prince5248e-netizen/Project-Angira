@@ -1,0 +1,3 @@
+file,label,fake_prob
+test_data\real\real1.wav,0,0.046843480318784714
+test_data\fake\fake1.wav,1,0.04675493389368057
