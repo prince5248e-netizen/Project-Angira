@@ -69,6 +69,28 @@ Render provides HTTPS automatically, so microphone recording works on supported 
 
 The public service accepts audio uploads up to 16 MB. Do not commit secrets or model tokens to the repository. If Hugging Face rate limits the build, add an `HF_TOKEN` environment variable in Render using a secret value.
 
+### Free public demo with Cloudflare Tunnel
+
+Cloudflare Tunnel can expose the local app through a temporary public HTTPS URL without a paid hosting plan. Your computer must remain on, and the app must keep running.
+
+1. Install `cloudflared` from the [official downloads page](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/), then make sure `cloudflared` works in PowerShell:
+   ```powershell
+   cloudflared --version
+   ```
+2. Start the public app:
+   ```powershell
+   .\start_public.ps1
+   ```
+3. Copy the `https://*.trycloudflare.com` URL printed by Cloudflare and share it.
+
+If PowerShell blocks the script, run:
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\start_public.ps1
+```
+
+The URL changes whenever the tunnel restarts. Never expose private files or secrets through the public app.
+
 Notes:
 - The app uses the native Hugging Face Wav2Vec2 classifier `MelodyMachine/Deepfake-audio-detection-V2`. Its label mapping is `fake=0`, `real=1`.
 - The inference boundary applies the calibrated inversion enabled by `INVERT_MODEL_LABELS` because the published mapping was reversed on the user's labeled real/fake samples.
